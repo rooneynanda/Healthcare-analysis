@@ -1,0 +1,97 @@
+--Total patients
+select count(*) as total_patients
+from patients
+
+
+--1. Daily Hospital Performance
+
+--Total revenue
+select sum(treatment_cost) as total_revenue
+from admissions
+group by 
+
+
+--avg length of stay
+select AVG(bed_days) as avg_Stay
+from admissions
+
+
+--2. Monthly Growth Analysis
+
+select DATE_TRUNC('month',admission_date) as month, 
+       count(*) as total_Admissions
+from admissions
+group by month
+order by month
+
+
+--3. Revenue Contribution by Department
+select sum(a.treatment_cost) as revenue,
+       d.department_name
+from departments d
+join doctors dr on dr.department_id = d.department_id
+join admissions a on a.doctor_id = dr.doctor_id 
+group by d.department_name
+order by revenue desc
+
+--%contribution 
+select sum(a.treatment_cost) as dept_revenue,
+       d.department_name,
+Round(
+sum(a.treatment_cost) *100.0
+/sum(sum(a.treatment_cost)) over(),2) as contribution_percentage
+from departments d
+join doctors dr on dr.department_id = d.department_id
+join admissions a on a.doctor_id = dr.doctor_id 
+group by d.department_name
+order by contribution_percentage desc 
+ 
+
+--4.Doctor Performance Ranking
+--Revenue per doctor
+select sum(treatment_cost) as revenue,
+d.doctor_name
+from admissions a
+join doctors d on d.doctor_id = a.doctor_id
+group by d.doctor_name
+order by revenue desc
+
+
+--patient count
+select count(a.patient_id) as patient_count,
+       d.doctor_name
+from admissions a
+join doctors d on d.doctor_id = a.doctor_id
+group by d.doctor_name
+
+
+--Rank by revenue
+
+select *
+from (select sum(treatment_cost) as revenue,
+d.doctor_name,
+Rank() Over(order by sum(treatment_cost)desc) as rnk
+from admissions a
+join doctors d on d.doctor_id = a.doctor_id
+group by d.doctor_name
+order by revenue desc)
+where rnk <=5
+
+
+--5.Department Efficiency
+select AVG(a.bed_days) as avg_stay,
+     d.department_name
+from departments d
+join doctors dr on dr.department_id = d.department_id
+join admissions a on a.doctor_id = dr.doctor_id 
+group by d.department_name
+
+
+--6.Repeat Patient Analysis 
+--Patients with multiple visits
+select count(p.patient_id) as patients,
+a.admission_date
+from admissions a
+join patients p on p.patient_id = a.patient_id
+group by a.admission_date
+having count(p.patient_id) > 1
